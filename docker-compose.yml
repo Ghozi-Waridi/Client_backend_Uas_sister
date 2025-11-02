@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  # MySQL Database
+  mysql-server:
+    image: mysql:8.0
+    container_name: toko-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: toko
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      toko-network:
+        ipv4_address: 172.30.0.10
+
+  # PHP + Apache Server
+  php-server:
+    image: php:8.2-apache
+    container_name: toko-php-server
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./php-server:/var/www/html
+    depends_on:
+      - mysql-server
+    environment:
+      DB_HOST: mysql-server
+      DB_NAME: toko
+      DB_USER: root
+      DB_PASSWORD: root
+    networks:
+      toko-network:
+        ipv4_address: 172.30.0.20
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: toko-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql-server
+      PMA_USER: root
+      PMA_PASSWORD: root
+    depends_on:
+      - mysql-server
+    networks:
+      toko-network:
+        ipv4_address: 172.30.0.30
+
+networks:
+  toko-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  mysql_data:
